@@ -23,12 +23,19 @@ export function brandColors(brand: Pick<BrandContext, "palette">) {
   return { bg, fg, accent, accentFg };
 }
 
-function wrap(text: string, maxChars: number, maxLines: number): string[] {
+// Approximate glyph widths (in ems of a bold sans) so wide capitals and narrow letters wrap correctly
+// without a font-metrics dependency.
+const glyph = (ch: string) =>
+  /[WM@]/.test(ch) ? 1.05 : /[mw]/.test(ch) ? 0.95 : /[A-Z0-9]/.test(ch) ? 0.74 : /[iljtfrI.,:;!'|() ]/.test(ch) ? 0.38 : 0.63;
+const measure = (s: string) => [...s].reduce((a, ch) => a + glyph(ch), 0);
+
+/** Wraps to `maxEms` (line width divided by font size). */
+function wrap(text: string, maxEms: number, maxLines: number): string[] {
   const words = text.replace(/\s+/g, " ").trim().split(" ");
   const lines: string[] = [];
   let cur = "";
   for (const w of words) {
-    if ((cur + " " + w).trim().length > maxChars && cur) {
+    if (cur && measure(cur + " " + w) > maxEms) {
       lines.push(cur);
       cur = w;
     } else cur = (cur + " " + w).trim();
@@ -52,9 +59,9 @@ export function slideSvg(brand: BrandContext, slide: Slide, w: number, h: number
   const named = (brand.typography.heading ?? "").replace(/[^\w .-]/g, "").trim();
   const font = `${named ? `'${named}', ` : ""}'DejaVu Sans', 'Liberation Sans', Arial, sans-serif`;
   const headSize = (slide.headline.length > 70 ? 64 : slide.headline.length > 36 ? 80 : 104) * u;
-  const headLines = wrap(slide.headline, Math.floor((w - pad * 2) / (headSize * 0.56)), 6);
+  const headLines = wrap(slide.headline, (w - pad * 2) / headSize, 6);
   const bodySize = 38 * u;
-  const bodyLines = slide.body ? wrap(slide.body, Math.floor((w - pad * 2) / (bodySize * 0.52)), h > w ? 8 : 4) : [];
+  const bodyLines = slide.body ? wrap(slide.body, (w - pad * 2) / bodySize, h > w ? 8 : 4) : [];
   const blockH = headLines.length * headSize * 1.1 + (bodyLines.length ? 40 * u + bodyLines.length * bodySize * 1.4 : 0);
   let y = Math.max(pad + 150 * u, (h - blockH) / 2 + headSize * 0.8);
 
@@ -79,7 +86,7 @@ export function slideSvg(brand: BrandContext, slide: Slide, w: number, h: number
   }
   if (slide.cta) {
     const label = slide.cta.slice(0, 34);
-    const cw = label.length * 21 * u + 80 * u;
+    const cw = measure(label) * 34 * u + 110 * u;
     const cy = h - pad - 84 * u;
     parts.push(`<rect x="${pad}" y="${cy}" width="${cw}" height="${84 * u}" rx="${42 * u}" fill="${c.accent}"/>`);
     parts.push(`<text x="${pad + cw / 2}" y="${cy + 54 * u}" text-anchor="middle" font-family="${font}" font-size="${34 * u}" font-weight="700" fill="${c.accentFg}">${esc(label)}</text>`);
