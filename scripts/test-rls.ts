@@ -87,9 +87,12 @@ const [job] = await asUser(producer, (tx) => tx`insert into content_jobs (org_id
 ok("producer can create a job", !!job);
 const approve = (uid: string, decidedBy = uid) => asUser(uid, (tx) => tx`insert into approvals (org_id, workspace_id, brand_id, job_id, decision, decided_by)
   values (${o1.org_id}, ${o1.workspace_id}, ${b1.id}, ${job.id}, 'approved', ${decidedBy}) returning id`);
+await sql`update content_jobs set status = 'awaiting_approval' where id = ${job.id}`;
 await denied("producer cannot approve", () => approve(producer));
 await denied("approval cannot be recorded in someone else's name", () => approve(reviewer, alice));
 ok("client reviewer can approve", (await approve(reviewer)).length === 1);
+ok("approval moves the job to approved", (await sql`select status from content_jobs where id = ${job.id}`)[0].status === "approved");
+await denied("content that is not awaiting approval cannot be approved again", () => approve(alice));
 await denied("approvals are immutable", () => asUser(alice, (tx) => tx`update approvals set decision = 'rejected' where job_id = ${job.id} returning id`));
 await denied("users cannot write cost records", () => asUser(alice, (tx) => tx`insert into production_costs (org_id, workspace_id, brand_id, category, amount_usd)
   values (${o1.org_id}, ${o1.workspace_id}, ${b1.id}, 'text', -100) returning id`));
@@ -111,8 +114,10 @@ ok("unlocking works for an approver", (await asUser(alice, (tx) => tx`update bra
 // --- publication integrity
 const pub = (status: string) => asUser(alice, (tx) => tx`insert into publication_jobs (org_id, workspace_id, brand_id, job_id, platform, status)
   values (${o1.org_id}, ${o1.workspace_id}, ${b1.id}, ${job.id}, 'instagram', ${status}) returning id`);
-await denied("unapproved content cannot be scheduled", () => pub("scheduled"));
-await sql`update content_jobs set status = 'approved' where id = ${job.id}`;
+const [job2] = await asUser(producer, (tx) => tx`insert into content_jobs (org_id, workspace_id, brand_id, module, content_type, title)
+  values (${o1.org_id}, ${o1.workspace_id}, ${b1.id}, 'writing', 'social_caption', 'Unapproved') returning id`);
+await denied("unapproved content cannot be scheduled", () => asUser(alice, (tx) => tx`insert into publication_jobs (org_id, workspace_id, brand_id, job_id, platform, status)
+  values (${o1.org_id}, ${o1.workspace_id}, ${b1.id}, ${job2.id}, 'instagram', 'scheduled') returning id`));
 const [p] = await pub("ready_manual");
 await denied("cannot mark published without a confirmed result", () => asUser(alice, (tx) => tx`update publication_jobs set status = 'published' where id = ${p.id} returning id`));
 await denied("a confirmation needs a URL or external id", () => asUser(alice, (tx) => tx`insert into publication_results (org_id, workspace_id, brand_id, publication_job_id, status, confirmation, confirmed_by)
