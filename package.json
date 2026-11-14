@@ -12,6 +12,7 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "worker": "tsx scripts/worker.ts",
     "test:rls": "tsx scripts/test-rls.ts",
+    "test:pipeline": "tsx scripts/test-pipeline.ts",
     "test:e2e": "node scripts/e2e-demo.mjs"
   },
   "dependencies": {

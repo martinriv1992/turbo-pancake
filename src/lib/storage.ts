@@ -16,16 +16,16 @@ const safe = (key: string) => {
 };
 
 function localStorage(): Storage {
-  const root = path.resolve(process.env.STORAGE_DIR || "./storage");
+  const root = path.resolve(/* turbopackIgnore: true */ process.env.STORAGE_DIR || "./storage");
   return {
     async put(key, data) {
-      const file = path.join(root, safe(key));
+      const file = path.join(/* turbopackIgnore: true */ root, safe(key));
       await fs.mkdir(path.dirname(file), { recursive: true });
       await fs.writeFile(file, data);
     },
     async get(key) {
       try {
-        return await fs.readFile(path.join(root, safe(key)));
+        return await fs.readFile(path.join(/* turbopackIgnore: true */ root, safe(key)));
       } catch {
         return null;
       }

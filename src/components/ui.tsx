@@ -141,7 +141,7 @@ export function Table({ head, children }: { head: string[]; children: ReactNode 
             {head.map((h) => <th key={h} className="px-5 py-2.5 font-medium">{h}</th>)}
           </tr>
         </thead>
-        <tbody className="[&>tr]:border-b [&>tr]:border-border [&>tr:last-child]:border-0 [&_td]:px-5 [&_td]:py-3 [&_td]:align-top">{children}</tbody>
+        <tbody className="[&>tr]:border-b [&>tr]:border-border [&>tr:last-child]:border-0 [&_td]:px-5 [&_td]:py-3 [&_td]:align-top [&_td:first-child]:min-w-52">{children}</tbody>
       </table>
     </div>
   );

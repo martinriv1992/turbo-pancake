@@ -26,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const ctx = await requireContext();
 
   const nav = (
-    <nav className="space-y-4">
+    <nav className="space-y-3">
       {NAV.map((g) => (
         <div key={g.group}>
           {g.group && <div className="mb-1 px-2.5 text-[11px] font-medium uppercase tracking-widest text-muted/70">{g.group}</div>}
